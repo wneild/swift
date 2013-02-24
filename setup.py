@@ -102,6 +102,7 @@ setup(
             'proxy_logging='
             'swift.common.middleware.proxy_logging:filter_factory',
             'bulk=swift.common.middleware.bulk:filter_factory',
+			'policies=swift.common.middleware.policies:filter_factory',
         ],
     },
 )
