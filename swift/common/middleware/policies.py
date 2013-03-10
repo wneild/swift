@@ -82,10 +82,10 @@ class PoliciesMiddleware(object):
                     if PoliciesMiddleware.EXPIRY_META in req.headers:
                         try:
                             expireType, duration = self.validate_policy(req.headers[PoliciesMiddleware.EXPIRY_META])
+                            response = self.container_mod(req, duration)
                         except ValueError:
                             req.headers[PoliciesMiddleware.EXPIRY_META] = None
-                            return HTTPPreconditionFailed(request=req, body='Invalid Policy Type provided to Container')
-                        response = self.container_mod(req, duration)
+                            response = HTTPPreconditionFailed(request=req, body='Invalid Policy Type provided to Container')
                     elif PoliciesMiddleware.REMOVE_EXPIRY_META in req.headers:
                         response = self.container_mod(req, 0)
                         
