@@ -63,6 +63,7 @@ class PoliciesMiddleware(object):
     
     POLICY_TYPES = {UNTOUCHED, UNMODIFIED, FIXED}
     EXPIRY_META = "X-Container-Meta-Expiry"
+    REMOVE_EXPIRY_META = "X-Remove-Container-Meta-Expiry"
     
     def __init__(self, app, conf):
         self.app = app
@@ -79,7 +80,14 @@ class PoliciesMiddleware(object):
             elif container and account: # A container has been touched, check if a policy is being applied to it
                 if req.method == "POST":
                     if PoliciesMiddleware.EXPIRY_META in req.headers:
-                        response = self.container_mod(req)
+                        try:
+                            expireType, duration = self.validate_policy(req.headers[PoliciesMiddleware.EXPIRY_META])
+                        except ValueError:
+                            req.headers[PoliciesMiddleware.EXPIRY_META] = None
+                            return HTTPPreconditionFailed(request=req, body='Invalid Policy Type provided to Container')
+                        response = self.container_mod(req, duration)
+                    elif PoliciesMiddleware.REMOVE_EXPIRY_META in req.headers:
+                        response = self.container_mod(req, 0)
                         
         except UnicodeError:
             err = HTTPPreconditionFailed(
@@ -104,6 +112,8 @@ class PoliciesMiddleware(object):
         :param req: The request object we are tracing.
         :param obj: The name of the object we are dealing with.
         """
+        if 'X-Remove-Delete-At' in req.headers:
+            return
         # Take object off end of URL and query container
         getcontreq = urllib2.Request(req.url.rsplit('/',1)[0])
         getcontreq.add_header('x-auth-token', req.headers['x-auth-token'])
@@ -119,23 +129,17 @@ class PoliciesMiddleware(object):
                     if duration > 0:
                         req.headers['X-Delete-After'] = 86400*duration
                     else:
-                        req.headers['X-Remove-Delete-At'] = ''
+                        req.headers['X-Remove-Delete-At'] = ' '
                 else:
                     self.set_object(req, '', duration)
         
 
     
-    def container_mod(self, req):
+    def container_mod(self, req, duration):
         """
         Modifies expiry on child objects when given a valid policy type.
         :param req: The request object we are tracing.
         """
-        try:
-            expireType, duration = self.validate_policy(req.headers[PoliciesMiddleware.EXPIRY_META])
-        except ValueError:
-            req.headers[PoliciesMiddleware.EXPIRY_META] = None
-            return HTTPPreconditionFailed(request=req, body='Invalid Policy Type provided to Container')
-
         getobjsreq = urllib2.Request(req.url)
         getobjsreq.add_header('x-auth-token', req.headers['x-auth-token'])
         
