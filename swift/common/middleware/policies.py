@@ -126,7 +126,7 @@ class PoliciesMiddleware(object):
                 return HTTPPreconditionFailed(request=req, body='Invalid Policy Type provided to obj mod')# TODO: Needs to be logged that the policy is invalid on the parent container
             
             
-            if expireType == PoliciesMiddleware.UNTOUCHED or (expireType == PoliciesMiddleware.UNMODIFIED and req.method != "GET"):
+            if expireType == PoliciesMiddleware.UNTOUCHED or (expireType == PoliciesMiddleware.UNMODIFIED and req.method != "GET") or (expireType == PoliciesMiddleware.FIXED and req.method == 'PUT'):
                 if req.method == "POST" or req.method == "PUT":
                     if duration > 0:
                         req.headers['X-Delete-After'] = duration
