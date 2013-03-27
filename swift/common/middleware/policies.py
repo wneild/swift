@@ -179,10 +179,10 @@ class PoliciesMiddleware(object):
         existingmeta = filter(lambda x: x[0].lower().startswith('x-object-meta-'), resheaders)
 
         h = httplib.HTTPConnection(parsed.netloc)
-        objheaders = {'x-auth-token':req.headers['x-auth-token']}
+        objheaders = {'x-auth-token':req.headers['x-auth-token'], PoliciesMiddleware.LOCAL_CALL_HEADER:""}
         objheaders.update(existingmeta)
         if duration > 0: objheaders['X-Delete-After'] = duration
-        else: objheaders['X-Remove-Delete-At'] = ''
+        else: objheaders['X-Remove-Delete-At'] = ' '
         h.request('POST', req.path_info+obj, '', objheaders)
        
     def validate_policy(self, policy):
